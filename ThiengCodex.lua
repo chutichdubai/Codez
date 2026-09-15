@@ -1,35 +1,473 @@
+--[[
+  ╔══════════════════════════════════════════════════════════════╗
+  ║                THIÊNG CODEX - FRUIT SNIPER                    ║
+  ║       Scan → Fly → Grab → Store (3 retries) → Hop          ║
+  ╚══════════════════════════════════════════════════════════════╝
+]]
 
--- hide.lat / maximum / 0bfe9061ba64
-local IOi0lLOLLO=(getfenv and getfenv(1)) or _ENV or _G
-local l0IOjooO110O,j11LI0jj0i=string.byte,string.char
-local function lILoIiljjL(lL00jlo01,IOo0oLOjOO1)
-local Lo11jll00oO=""
-local j1ioO0iiol1O=#IOo0oLOjOO1
-for lj1iOOO1Oj=1,#lL00jlo01 do Lo11jll00oO=Lo11jll00oO..j11LI0jj0i((l0IOjooO110O(lL00jlo01,lj1iOOO1Oj)-l0IOjooO110O(IOo0oLOjOO1,(lj1iOOO1Oj-1)%j1ioO0iiol1O+1))%256) end
-return Lo11jll00oO
+repeat task.wait() until game:IsLoaded()
+
+local Players           = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService      = game:GetService("TweenService")
+local VirtualUser       = game:GetService("VirtualUser")
+local HttpService       = game:GetService("HttpService")
+local TeleportService   = game:GetService("TeleportService")
+
+local Remotes = ReplicatedStorage:WaitForChild("Remotes", 9e9)
+local CommF   = Remotes:WaitForChild("CommF_", 9e9)
+local Player  = Players.LocalPlayer
+
+getgenv().AutoFruitSniper   = true
+getgenv().FruitESP          = true
+getgenv().TweenSpeed        = 300
+getgenv().StoreRetries      = 3
+getgenv().HopDelay          = 3
+getgenv().ScanInterval      = 0.5
+getgenv().AntiAFK           = true
+
+local oldGui = Player:FindFirstChild("PlayerGui") and Player.PlayerGui:FindFirstChild("ThiengCodeXGUI")
+if oldGui then oldGui:Destroy() end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ThiengCodeXGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 340, 0, 260)
+MainFrame.Position = UDim2.new(0, 15, 0, 15)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+MainFrame.BackgroundTransparency = 0.15
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner", MainFrame)
+MainCorner.CornerRadius = UDim.new(0, 10)
+
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Color = Color3.fromRGB(100, 50, 255)
+MainStroke.Thickness = 1.5
+MainStroke.Transparency = 0.3
+
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 36)
+TitleBar.BackgroundColor3 = Color3.fromRGB(100, 50, 255)
+TitleBar.BackgroundTransparency = 0.4
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner", TitleBar)
+TitleCorner.CornerRadius = UDim.new(0, 10)
+
+local TitleFix = Instance.new("Frame")
+TitleFix.Size = UDim2.new(1, 0, 0, 12)
+TitleFix.Position = UDim2.new(0, 0, 1, -12)
+TitleFix.BackgroundColor3 = Color3.fromRGB(100, 50, 255)
+TitleFix.BackgroundTransparency = 0.4
+TitleFix.BorderSizePixel = 0
+TitleFix.Parent = TitleBar
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "Title"
+TitleLabel.Size = UDim2.new(1, -10, 1, 0)
+TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "⚡ THIÊNG CODEX"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 16
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = TitleBar
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Name = "Status"
+StatusLabel.Size = UDim2.new(1, -20, 0, 28)
+StatusLabel.Position = UDim2.new(0, 10, 0, 42)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "⏳ Initializing..."
+StatusLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+StatusLabel.TextSize = 14
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.TextWrapped = true
+StatusLabel.Parent = MainFrame
+
+local LogFrame = Instance.new("ScrollingFrame")
+LogFrame.Name = "LogFrame"
+LogFrame.Size = UDim2.new(1, -20, 1, -80)
+LogFrame.Position = UDim2.new(0, 10, 0, 74)
+LogFrame.BackgroundColor3 = Color3.fromRGB(5, 5, 15)
+LogFrame.BackgroundTransparency = 0.3
+LogFrame.BorderSizePixel = 0
+LogFrame.ScrollBarThickness = 4
+LogFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 50, 255)
+LogFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+LogFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+LogFrame.Parent = MainFrame
+
+local LogCorner = Instance.new("UICorner", LogFrame)
+LogCorner.CornerRadius = UDim.new(0, 6)
+
+local LogLayout = Instance.new("UIListLayout", LogFrame)
+LogLayout.SortOrder = Enum.SortOrder.LayoutOrder
+LogLayout.Padding = UDim.new(0, 2)
+
+local LogPadding = Instance.new("UIPadding", LogFrame)
+LogPadding.PaddingTop = UDim.new(0, 4)
+LogPadding.PaddingLeft = UDim.new(0, 6)
+LogPadding.PaddingRight = UDim.new(0, 6)
+
+local MSG_COLORS = {
+  success = Color3.fromRGB(80, 255, 80),
+  error   = Color3.fromRGB(255, 80, 80),
+  warn    = Color3.fromRGB(255, 200, 50),
+  info    = Color3.fromRGB(150, 180, 255),
+  action  = Color3.fromRGB(0, 200, 255),
+  fruit   = Color3.fromRGB(255, 100, 200),
+  hop     = Color3.fromRGB(180, 130, 255),
+}
+
+local logOrder = 0
+
+local function Notify(message, msgType, isStatus)
+  msgType = msgType or "info"
+  local color = MSG_COLORS[msgType] or MSG_COLORS.info
+  
+  if isStatus then
+    StatusLabel.Text = message
+    StatusLabel.TextColor3 = color
+  end
+  
+  logOrder = logOrder + 1
+  local LogEntry = Instance.new("TextLabel")
+  LogEntry.Name = "Log_" .. logOrder
+  LogEntry.LayoutOrder = logOrder
+  LogEntry.Size = UDim2.new(1, 0, 0, 16)
+  LogEntry.BackgroundTransparency = 1
+  LogEntry.Text = os.date("%H:%M:%S") .. "  " .. message
+  LogEntry.TextColor3 = color
+  LogEntry.TextSize = 11
+  LogEntry.Font = Enum.Font.Gotham
+  LogEntry.TextXAlignment = Enum.TextXAlignment.Left
+  LogEntry.TextWrapped = true
+  LogEntry.AutomaticSize = Enum.AutomaticSize.Y
+  LogEntry.Parent = LogFrame
+  
+  task.defer(function()
+    LogFrame.CanvasPosition = Vector2.new(0, LogFrame.AbsoluteCanvasSize.Y)
+  end)
+  
+  print("[ThiengCodeX] " .. message)
 end
-local iIoOoIi=IOi0lLOLLO[lILoIiljjL("_\205\170\233H\234","\236h>\132\229v\179")]
-local jIolji01lj0I00=IOi0lLOLLO[lILoIiljjL("I\209,nD\196","\214]\186\005")][lILoIiljjL("B\202\245","\207U\147t\178I")]
-local jiIoOl0ilOi=IOi0lLOLLO[lILoIiljjL("\212~\127f\216","`\029\029\250s")][lILoIiljjL("\189\159\009#\187\164","Z0\155\192")]
-local j1ol010OlIIIj=IOi0lLOLLO[lILoIiljjL("K\146BC","\2221\206\219")][lILoIiljjL("`x\003Y\145","\250\012\148\234\031")]
-local lOjlLi=IOi0lLOLLO[lILoIiljjL("e\130'i^u\030f","\241\019\185\244")]
-local jIoII0li111j=IOi0lLOLLO[lILoIiljjL("\146\1770E\194","-?\190\214P")]
-local liOIj01=iIoOoIi("#",0,0,0)*25+l0IOjooO110O("Z")+(j11LI0jj0i(90,68)=="ZD" and 2787 or 65)+lOjlLi("3439")*2
-local IO00IoI=IOi0lLOLLO[lILoIiljjL("w\024*o\028","\003\183\200")][lILoIiljjL("|\135\1628","\012&?\205,")] or function(...) return {n=iIoOoIi("#",...),...} end
-local LjIl0iOjIo=IOi0lLOLLO[lILoIiljjL("\249\230\027\241\234","\133\133\185")][lILoIiljjL(",\031\254\024\020\249","\183\177\142")] or IOi0lLOLLO[lILoIiljjL("\194;\147,>3","M\205#\203\219\200\247")]
-local llOOioOIj="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-local function i0oO0jOiLL(L1IiIollIjl0j)
-local lOjLOjI={}
-for L0IojjILL1L=1,64 do lOjLOjI[l0IOjooO110O(llOOioOIj,L0IojjILL1L)]=L0IojjILL1L-1 end
-local lOIIoL1l110i,lLjIjL10o00,LlooL01liL,ilolLLO0LIOI={},0,0,0
-for L0IojjILL1L=1,#L1IiIollIjl0j do
-local lij011111Ll1=lOjLOjI[l0IOjooO110O(L1IiIollIjl0j,L0IojjILL1L)]
-if lij011111Ll1 then
-lLjIjL10o00=lLjIjL10o00*64+lij011111Ll1
-LlooL01liL=LlooL01liL+6
-if LlooL01liL>=8 then LlooL01liL=LlooL01liL-8 ilolLLO0LIOI=ilolLLO0LIOI+1 lOIIoL1l110i[ilolLLO0LIOI]=j11LI0jj0i(j1ol010OlIIIj(lLjIjL10o00/(2^LlooL01liL))%256) lLjIjL10o00=lLjIjL10o00%(2^LlooL01liL) end
+
+local function Get_Fruit(Fruit)
+  if Fruit == "Rocket Fruit" then return "Rocket-Rocket"
+  elseif Fruit == "Spin Fruit" then return "Spin-Spin"
+  elseif Fruit == "Chop Fruit" then return "Chop-Chop"
+  elseif Fruit == "Spring Fruit" then return "Spring-Spring"
+  elseif Fruit == "Bomb Fruit" then return "Bomb-Bomb"
+  elseif Fruit == "Smoke Fruit" then return "Smoke-Smoke"
+  elseif Fruit == "Spike Fruit" then return "Spike-Spike"
+  elseif Fruit == "Flame Fruit" then return "Flame-Flame"
+  elseif Fruit == "Falcon Fruit" then return "Falcon-Falcon"
+  elseif Fruit == "Ice Fruit" then return "Ice-Ice"
+  elseif Fruit == "Sand Fruit" then return "Sand-Sand"
+  elseif Fruit == "Dark Fruit" then return "Dark-Dark"
+  elseif Fruit == "Ghost Fruit" then return "Ghost-Ghost"
+  elseif Fruit == "Diamond Fruit" then return "Diamond-Diamond"
+  elseif Fruit == "Light Fruit" then return "Light-Light"
+  elseif Fruit == "Rubber Fruit" then return "Rubber-Rubber"
+  elseif Fruit == "Barrier Fruit" then return "Barrier-Barrier"
+  elseif Fruit == "Magma Fruit" then return "Magma-Magma"
+  elseif Fruit == "Quake Fruit" then return "Quake-Quake"
+  elseif Fruit == "Buddha Fruit" then return "Buddha-Buddha"
+  elseif Fruit == "Love Fruit" then return "Love-Love"
+  elseif Fruit == "Spider Fruit" then return "Spider-Spider"
+  elseif Fruit == "Sound Fruit" then return "Sound-Sound"
+  elseif Fruit == "Phoenix Fruit" then return "Phoenix-Phoenix"
+  elseif Fruit == "Portal Fruit" then return "Portal-Portal"
+  elseif Fruit == "Rumble Fruit" then return "Rumble-Rumble"
+  elseif Fruit == "Pain Fruit" then return "Pain-Pain"
+  elseif Fruit == "Blizzard Fruit" then return "Blizzard-Blizzard"
+  elseif Fruit == "Gravity Fruit" then return "Gravity-Gravity"
+  elseif Fruit == "Mammoth Fruit" then return "Mammoth-Mammoth"
+  elseif Fruit == "T-Rex Fruit" then return "T-Rex-T-Rex"
+  elseif Fruit == "Dough Fruit" then return "Dough-Dough"
+  elseif Fruit == "Shadow Fruit" then return "Shadow-Shadow"
+  elseif Fruit == "Venom Fruit" then return "Venom-Venom"
+  elseif Fruit == "Control Fruit" then return "Control-Control"
+  elseif Fruit == "Spirit Fruit" then return "Spirit-Spirit"
+  elseif Fruit == "Dragon Fruit" then return "Dragon-Dragon"
+  elseif Fruit == "Leopard Fruit" then return "Leopard-Leopard"
+  elseif Fruit == "Kitsune Fruit" then return "Kitsune-Kitsune" end
 end
+
+local block = Instance.new("Part", workspace)
+block.Size         = Vector3.new(1, 1, 1)
+block.Name         = "ThiengCodeX_Platform"
+block.Anchored     = true
+block.CanCollide   = false
+block.CanTouch     = false
+block.Transparency = 1
+
+local IsFarming = false
+
+task.spawn(function()
+  repeat task.wait() until Player.Character and Player.Character.PrimaryPart
+  block.CFrame = Player.Character.PrimaryPart.CFrame
+  
+  while task.wait() do
+    pcall(function()
+      if IsFarming then
+        if block and block.Parent == workspace then
+          local plrPP = Player.Character and Player.Character.PrimaryPart
+          if plrPP and (plrPP.Position - block.Position).Magnitude <= 200 then
+            plrPP.CFrame = block.CFrame
+          else
+            block.CFrame = plrPP.CFrame
+          end
+        end
+        local plrChar = Player.Character
+        if plrChar then
+          for _, part in pairs(plrChar:GetChildren()) do
+            if part:IsA("BasePart") then part.CanCollide = false end
+          end
+          if plrChar:FindFirstChild("Stun") then plrChar.Stun.Value = 0 end
+          if plrChar:FindFirstChild("Busy") then plrChar.Busy.Value = false end
+        end
+      else
+        local plrChar = Player.Character
+        if plrChar then
+          for _, part in pairs(plrChar:GetChildren()) do
+            if part:IsA("BasePart") then part.CanCollide = true end
+          end
+        end
+      end
+    end)
+  end
+end)
+
+local function TweenToPosition(targetCFrame)
+  local plrPP = Player.Character and Player.Character.PrimaryPart
+  if not plrPP then return end
+  local distance = (plrPP.Position - targetCFrame.p).Magnitude
+  local speed = getgenv().TweenSpeed or 300
+  local tweenTime = distance / speed
+  if tweenTime < 0.1 then tweenTime = 0.1 end
+  
+  local tween = TweenService:Create(block, TweenInfo.new(tweenTime, Enum.EasingStyle.Linear), {CFrame = targetCFrame})
+  tween:Play()
+  tween.Completed:Wait()
 end
-return jiIoOl0ilOi(lOIIoL1l110i)
+
+local function FruitFind()
+  local fruits = workspace:GetChildren()
+  local FruitDistance = math.huge
+  local FoundFruit = nil
+  
+  for _, fruit in pairs(fruits) do
+    local plrPP = Player and Player.Character and Player.Character.PrimaryPart
+    local isTool = fruit and fruit:IsA("Tool") and fruit:FindFirstChild("Handle")
+    local isFruitNamed = fruit and string.find(fruit.Name, "Fruit") and fruit:FindFirstChild("Handle")
+    
+    if plrPP and isTool and (plrPP.Position - isTool.Position).Magnitude <= FruitDistance then
+      FruitDistance = (plrPP.Position - isTool.Position).Magnitude
+      FoundFruit = fruit
+    elseif plrPP and isFruitNamed and (plrPP.Position - isFruitNamed.Position).Magnitude <= FruitDistance then
+      FruitDistance = (plrPP.Position - isFruitNamed.Position).Magnitude
+      FoundFruit = fruit
+    end
+  end
+  return FoundFruit
 end
-local jLLOill="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
+
+local function AddESP(Part, ESPColor)
+  if Part and Part:FindFirstChild("ThiengCodeX_ESP") then return end
+  local Folder = Instance.new("Folder", Part)
+  Folder.Name = "ThiengCodeX_ESP"
+  local BBG = Instance.new("BillboardGui", Folder)
+  BBG.Adornee = Part
+  BBG.Size = UDim2.new(0, 120, 0, 50)
+  BBG.StudsOffset = Vector3.new(0, 3, 0)
+  BBG.AlwaysOnTop = true
+  local TL = Instance.new("TextLabel", BBG)
+  TL.BackgroundTransparency = 1
+  TL.Size = UDim2.new(1, 0, 1, 0)
+  TL.TextSize = 14
+  TL.Font = Enum.Font.GothamBold
+  TL.TextColor3 = ESPColor or Color3.fromRGB(255, 0, 0)
+  TL.TextStrokeTransparency = 0
+  TL.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+  TL.Text = "..."
+  TL.ZIndex = 15
+  
+  task.spawn(function()
+    while task.wait(0.5) do
+      pcall(function()
+        if not Part or not Part.Parent then Folder:Destroy() return end
+        local plrPP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+        if plrPP and Part then
+          local distance = math.floor((plrPP.Position - Part.Position).Magnitude)
+          local fruitName = Part.Parent and Part.Parent.Name or "Unknown"
+          TL.Text = "🍎 " .. fruitName .. " [" .. tostring(distance) .. " studs]"
+        end
+      end)
+    end
+  end)
+end
+
+task.spawn(function()
+  while getgenv().AutoFruitSniper do task.wait(1)
+    if getgenv().FruitESP then
+      for _, obj in pairs(workspace:GetChildren()) do
+        pcall(function()
+          if obj and obj:IsA("Tool") and obj:FindFirstChild("Handle") then
+            AddESP(obj.Handle, Color3.fromRGB(255, 50, 50))
+          elseif obj and string.find(obj.Name, "Fruit") and obj:FindFirstChild("Handle") then
+            AddESP(obj.Handle, Color3.fromRGB(255, 50, 50))
+          end
+        end)
+      end
+    end
+  end
+end)
+
+local function FindFruitInInventory()
+  local plrChar = Player and Player.Character
+  local plrBag  = Player and Player.Backpack
+  if plrChar then
+    for _, tool in pairs(plrChar:GetChildren()) do
+      if tool:IsA("Tool") and tool:FindFirstChild("Fruit") then return tool end
+    end
+  end
+  if plrBag then
+    for _, tool in pairs(plrBag:GetChildren()) do
+      if tool:IsA("Tool") and tool:FindFirstChild("Fruit") then return tool end
+    end
+  end
+  return nil
+end
+
+local function StoreFruitWithRetry(fruitTool)
+  local maxRetries = getgenv().StoreRetries or 3
+  local fruitId = Get_Fruit(fruitTool.Name)
+  if not fruitId then Notify("❌ Unknown fruit: " .. fruitTool.Name, "error") return false end
+  
+  Notify("📦 Storing: " .. fruitTool.Name .. " (" .. fruitId .. ")", "action", true)
+  for attempt = 1, maxRetries do
+    Notify("📦 Store attempt " .. attempt .. "/" .. maxRetries .. "...", "warn", true)
+    local success, result = pcall(function() return CommF:InvokeServer("StoreFruit", fruitId, fruitTool) end)
+    if success and result == true then
+      Notify("✅ STORED " .. fruitTool.Name .. "!", "success", true)
+      return true
+    else
+      task.wait(1)
+    end
+  end
+  return false
+end
+
+local CurrentPlaceId = game.PlaceId
+local CurrentSea = "Unknown"
+pcall(function()
+  local Locations = workspace:FindFirstChild("_WorldOrigin") and workspace._WorldOrigin:FindFirstChild("Locations")
+  if Locations then
+    if Locations:FindFirstChild("Hydra Island") or Locations:FindFirstChild("Floating Turtle") then CurrentSea = "Sea 3"
+    elseif Locations:FindFirstChild("Kingdom of Rose") or Locations:FindFirstChild("Green Zone") then CurrentSea = "Sea 2"
+    else CurrentSea = "Sea 1" end
+  end
+end)
+
+local function ServerHop()
+  Notify("🔄 Starting server hop...", "hop", true)
+  while true do
+    local apiUrl = "https://games.roblox.com/v1/games/" .. CurrentPlaceId .. "/servers/Public?sortOrder=Desc&excludeFullGames=true&limit=100"
+    local Server, Next, pageAttempts = nil, nil, 0
+    pcall(function()
+      repeat task.wait(0.5)
+        pageAttempts = pageAttempts + 1
+        local raw = game:HttpGet(apiUrl .. ((Next and "&cursor=" .. Next) or ""))
+        local Servers = HttpService:JSONDecode(raw)
+        if Servers and Servers.data then
+          for _, server in pairs(Servers.data) do
+            if server.id ~= game.JobId and server.playing and server.maxPlayers and server.playing < (server.maxPlayers - 1) then
+              Server = server
+              break
+            end
+          end
+          Next = Servers.nextPageCursor
+        end
+      until Server or not Next or pageAttempts >= 5
+    end)
+    
+    if Server then
+      pcall(function() ReplicatedStorage:WaitForChild("__ServerBrowser"):InvokeServer("teleport", Server.id) end)
+      task.wait(5)
+      TeleportService:TeleportToPlaceInstance(CurrentPlaceId, Server.id, Player)
+      task.wait(5)
+    else
+      TeleportService:Teleport(CurrentPlaceId, Player)
+      task.wait(5)
+    end
+  end
+end
+
+task.spawn(function()
+  while getgenv().AntiAFK do task.wait(60)
+    pcall(function() VirtualUser:CaptureController() VirtualUser:ClickButton2(Vector2.new()) end)
+  end
+end)
+
+local function WaitForCharacter()
+  local char = Player.Character or Player.CharacterAdded:Wait()
+  repeat task.wait() until char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid")
+  task.wait(1)
+  block.CFrame = char.HumanoidRootPart.CFrame
+  return char
+end
+
+Notify("⚡ Thiêng CodeX Active!", "success", true)
+task.wait(1)
+
+task.spawn(function()
+  while getgenv().AutoFruitSniper do
+    WaitForCharacter()
+    local fruit = FruitFind()
+    if fruit then
+      local fruitHandle = fruit:FindFirstChild("Handle")
+      Notify("🍎 FOUND: " .. fruit.Name, "fruit", true)
+      
+      IsFarming = true
+      TweenToPosition(CFrame.new(fruitHandle.Position + Vector3.new(0, 5, 0)))
+      TweenToPosition(fruitHandle.CFrame)
+      
+      local plrPP = Player.Character and Player.Character.PrimaryPart
+      if plrPP and fruitHandle then
+        for i = 1, 10 do
+          if not fruit.Parent or fruit.Parent ~= workspace then break end
+          plrPP.CFrame = fruitHandle.CFrame
+          block.CFrame = fruitHandle.CFrame
+          task.wait(0.2)
+        end
+      end
+      task.wait(1)
+      
+      local inventoryFruit = FindFruitInInventory()
+      if inventoryFruit then StoreFruitWithRetry(inventoryFruit) end
+      IsFarming = false
+      
+      task.wait(getgenv().HopDelay)
+      ServerHop()
+      break
+    else
+      Notify("❌ No fruit, hopping...", "error", true)
+      task.wait(getgenv().HopDelay)
+      ServerHop()
+      break
+    end
+  end
+end)
